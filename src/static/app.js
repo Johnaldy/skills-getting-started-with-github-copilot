@@ -27,7 +27,19 @@ function displayActivities(activities) {
     card.className = 'activity-card';
     
     const participantsHTML = details.participants.length > 0
-      ? `<ul>${details.participants.map(email => `<li>${email}</li>`).join('')}</ul>`
+      ? `<ul>${details.participants.map(email => `
+          <li>
+            ${email}
+            <button class="delete-btn" onclick="handleUnregister('${name}', '${email}')">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+              </svg>
+            </button>
+          </li>
+        `).join('')}</ul>`
       : '<p class="no-participants">No participants yet</p>';
     
     card.innerHTML = `
@@ -76,7 +88,7 @@ async function handleSignup(event) {
       messageDiv.classList.remove('hidden');
       
       // Reload activities to show updated participants
-      loadActivities();
+      await loadActivities();
       
       // Reset form
       document.getElementById('signup-form').reset();
@@ -93,4 +105,45 @@ async function handleSignup(event) {
   setTimeout(() => {
     messageDiv.classList.add('hidden');
   }, 5000);
+}
+
+async function handleUnregister(activityName, email) {
+  if (!confirm(`Are you sure you want to unregister ${email} from ${activityName}?`)) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/activities/${encodeURIComponent(activityName)}/unregister?email=${encodeURIComponent(email)}`, {
+      method: 'DELETE'
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+      // Show success message
+      const messageDiv = document.getElementById('message');
+      messageDiv.className = 'message success';
+      messageDiv.textContent = data.message;
+      messageDiv.classList.remove('hidden');
+      
+      // Reload activities to show updated participants
+      await loadActivities();
+      
+      // Hide message after 5 seconds
+      setTimeout(() => {
+        messageDiv.classList.add('hidden');
+      }, 5000);
+    } else {
+      throw new Error(data.detail || 'Unregister failed');
+    }
+  } catch (error) {
+    const messageDiv = document.getElementById('message');
+    messageDiv.className = 'message error';
+    messageDiv.textContent = error.message;
+    messageDiv.classList.remove('hidden');
+    
+    setTimeout(() => {
+      messageDiv.classList.add('hidden');
+    }, 5000);
+  }
 }
